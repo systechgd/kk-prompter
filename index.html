@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0F1419">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KK Prompter">
+<title>KK Prompter</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <video id="preview" playsinline muted autoplay></video>
+  <div id="audioView" hidden>
+    <div class="mic">🎙️</div>
+    <div class="meter big"><i id="meterBig"></i></div>
+    <p>Voice only mode</p>
+  </div>
+
+  <!-- Prompter text: top of the screen, close to the front camera -->
+  <div id="prompter">
+    <div id="readLine"></div>
+    <div id="scroller"><div id="text"></div></div>
+  </div>
+
+  <div id="hud">
+    <span id="rec" hidden>● REC <b id="clock">00:00</b></span>
+    <span id="take">Take 1</span>
+    <div class="meter"><i id="meter"></i></div>
+  </div>
+
+  <div id="countdown" hidden></div>
+
+  <nav id="bar">
+    <button id="btnScripts" title="Scripts">📄<small>Scripts</small></button>
+    <button id="btnScroll" title="Scroll">▶<small>Scroll</small></button>
+    <button id="btnRec" class="rec" title="Record"><span></span></button>
+    <button id="btnRestart" title="Back to top">⤒<small>Top</small></button>
+    <button id="btnSettings" title="Settings">⚙️<small>Settings</small></button>
+  </nav>
+</div>
+
+<!-- First-run / permission screen -->
+<section id="start" class="sheet open full">
+  <img src="icons/icon.svg" alt="" width="84" height="84">
+  <h1>KodeKatta Prompter</h1>
+  <p>Read your script and record yourself. Everything stays on this device: no account, no uploads.</p>
+  <div class="row2">
+    <button class="primary" data-mode="video">🎥 Camera + voice</button>
+    <button class="primary alt" data-mode="audio">🎙️ Voice only</button>
+  </div>
+  <p class="muted small" id="startMsg"></p>
+</section>
+
+<!-- Scripts library -->
+<section id="scripts" class="sheet">
+  <header><h2>Scripts</h2><button class="x" data-close>✕</button></header>
+  <div class="row2">
+    <label class="btn">📂 Open file<input type="file" id="fileIn" accept=".md,.txt,text/plain,text/markdown" hidden></label>
+    <button id="btnPaste" class="btn">📋 Paste new</button>
+  </div>
+  <div id="pasteBox" hidden>
+    <input id="pasteTitle" placeholder="Title (e.g. Pod vs Deployment)">
+    <textarea id="pasteText" rows="8" placeholder="Paste the whole script.md or just the reading block. Only the text between 🔊 START READING and 🔇 STOP READING is shown."></textarea>
+    <button id="btnSavePaste" class="primary">Save script</button>
+  </div>
+  <ul id="lib"></ul>
+  <p class="muted small">Scripts are saved only in this browser on this device.</p>
+</section>
+
+<!-- Settings -->
+<section id="settings" class="sheet">
+  <header><h2>Settings</h2><button class="x" data-close>✕</button></header>
+  <label>Scroll speed <output id="oSpeed"></output><input type="range" id="speed" min="10" max="160" step="2"></label>
+  <label>Text size <output id="oSize"></output><input type="range" id="size" min="20" max="72" step="1"></label>
+  <label>Text area height <output id="oHeight"></output><input type="range" id="height" min="25" max="90" step="1"></label>
+  <label>Background darkness <output id="oDim"></output><input type="range" id="dim" min="0" max="100" step="5"></label>
+  <label class="chk"><input type="checkbox" id="autoScroll"> Start scrolling when recording starts</label>
+  <label class="chk"><input type="checkbox" id="countdownOn"> 3-2-1 countdown before recording</label>
+  <label class="chk"><input type="checkbox" id="mirrorText"> Mirror text (for a glass prompter)</label>
+  <label class="chk"><input type="checkbox" id="showMarks"> Show pause marks ( / and // )</label>
+  <label class="chk"><input type="checkbox" id="noiseSup"> Reduce background noise</label>
+  <div class="seg">
+    <span>Record</span>
+    <button data-set-mode="video">🎥 Camera + voice</button>
+    <button data-set-mode="audio">🎙️ Voice only</button>
+  </div>
+  <div class="seg">
+    <span>Camera</span>
+    <button data-facing="user">Front</button>
+    <button data-facing="environment">Back</button>
+  </div>
+  <div class="seg">
+    <span>Quality</span>
+    <button data-q="1080">1080p</button>
+    <button data-q="720">720p</button>
+  </div>
+  <p class="muted small" id="devInfo"></p>
+</section>
+
+<!-- Result after a take -->
+<section id="result" class="sheet">
+  <header><h2 id="resTitle">Take saved?</h2><button class="x" data-close>✕</button></header>
+  <video id="resVideo" controls playsinline hidden></video>
+  <audio id="resAudio" controls hidden></audio>
+  <p class="muted small" id="resInfo"></p>
+  <div class="col">
+    <button id="btnShare" class="primary">📤 Share / Save to Files or Drive</button>
+    <a id="btnDownload" class="btn" download>⬇️ Download</a>
+    <button id="btnDiscard" class="btn danger">🗑️ Discard and record again</button>
+  </div>
+</section>
+
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

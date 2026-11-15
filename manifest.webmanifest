@@ -1,0 +1,17 @@
+{
+  "name": "KodeKatta Prompter",
+  "short_name": "KK Prompter",
+  "description": "Teleprompter and camera/voice recorder for KodeKatta scripts. Works offline; nothing is uploaded.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0F1419",
+  "theme_color": "#0F1419",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
