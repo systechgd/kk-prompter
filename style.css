@@ -8,7 +8,8 @@ html,body{margin:0;height:100%;background:var(--ink);color:var(--chalk);
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif;overflow:hidden;overscroll-behavior:none}
 button,input,textarea,.btn{font:inherit;color:inherit}
 #stage{position:fixed;inset:0;background:#000}
-#preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#preview{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1)}
+#preview.fill{object-fit:cover}
 #preview.back{transform:none}
 #audioView{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:22vh;gap:14px;background:radial-gradient(circle at 50% 70%,#18303a,var(--ink) 70%)}
 #audioView .mic{font-size:64px}
@@ -71,6 +72,7 @@ button,input,textarea,.btn{font:inherit;color:inherit}
 label{display:block;margin:14px 0 4px;font-size:15px}
 label output{float:right;color:var(--marigold)}
 input[type=range]{width:100%;accent-color:var(--terminal);margin-top:6px}
+#lens{width:100%;margin-top:6px;background:var(--ink);color:var(--chalk);border:1px solid var(--slate);border-radius:10px;padding:10px}
 label.chk{display:flex;gap:10px;align-items:center}
 label.chk input{width:20px;height:20px;accent-color:var(--terminal)}
 .seg{display:flex;align-items:center;gap:8px;margin:14px 0;flex-wrap:wrap}

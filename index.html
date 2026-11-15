@@ -98,9 +98,22 @@
   </div>
   <div class="seg">
     <span>Quality</span>
+    <button data-q="1440">High</button>
     <button data-q="1080">1080p</button>
     <button data-q="720">720p</button>
   </div>
+  <div class="seg">
+    <span>Frame</span>
+    <button data-frame="wide">Wide (more room)</button>
+    <button data-frame="tall">Tall 9:16</button>
+  </div>
+  <div class="seg">
+    <span>Preview</span>
+    <button data-fit="contain">Whole picture</button>
+    <button data-fit="cover">Fill screen</button>
+  </div>
+  <label id="lensRow" hidden>Lens <select id="lens"></select></label>
+  <label id="zoomRow" hidden>Zoom <output id="oZoom"></output><input type="range" id="zoom" min="1" max="2" step="0.1"></label>
   <p class="muted small" id="devInfo"></p>
 </section>
 

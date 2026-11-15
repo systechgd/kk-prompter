@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump VERSION after changing any app file.
-const VERSION = 'kk-prompter-v2';
+const VERSION = 'kk-prompter-v3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

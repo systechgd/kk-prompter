@@ -14,6 +14,7 @@ const store = {
 const DEFAULTS = {
   speed: 46, size: 34, height: 45, dim: 72, autoScroll: true, countdownOn: true, mirrorText: false,
   showMarks: true, noiseSup: true, mode: 'video', facing: 'user', q: 1080,
+  frame: 'wide', fit: 'contain', zoom: 0, lens: '',   // wide = full sensor (3:4), no crop; zoom 0 = widest
 };
 const S = Object.assign({}, DEFAULTS, store.get('settings', {}));
 const saveSettings = () => store.set('settings', S);
@@ -99,7 +100,10 @@ function applySettings() {
   $$('[data-set-mode]').forEach((b) => b.classList.toggle('on', b.dataset.setMode === S.mode));
   $$('[data-facing]').forEach((b) => b.classList.toggle('on', b.dataset.facing === S.facing));
   $$('[data-q]').forEach((b) => b.classList.toggle('on', +b.dataset.q === S.q));
+  $$('[data-frame]').forEach((b) => b.classList.toggle('on', b.dataset.frame === S.frame));
+  $$('[data-fit]').forEach((b) => b.classList.toggle('on', b.dataset.fit === S.fit));
   video.classList.toggle('back', S.facing === 'environment');
+  video.classList.toggle('fill', S.fit === 'cover');
 }
 for (const k of ['speed', 'size', 'height', 'dim']) {
   $('#' + k).addEventListener('input', (e) => { S[k] = +e.target.value; applySettings(); saveSettings(); });
@@ -109,7 +113,15 @@ for (const k of ['autoScroll', 'countdownOn', 'mirrorText', 'showMarks']) {
 }
 $('#noiseSup').addEventListener('change', (e) => { S.noiseSup = e.target.checked; saveSettings(); restartMedia(); });
 $$('[data-set-mode]').forEach((b) => b.addEventListener('click', () => { S.mode = b.dataset.setMode; saveSettings(); applySettings(); restartMedia(); }));
-$$('[data-facing]').forEach((b) => b.addEventListener('click', () => { S.facing = b.dataset.facing; saveSettings(); applySettings(); restartMedia(); }));
+$$('[data-facing]').forEach((b) => b.addEventListener('click', () => { S.facing = b.dataset.facing; S.lens = ''; S.zoom = 0; saveSettings(); applySettings(); restartMedia(); }));
+$$('[data-frame]').forEach((b) => b.addEventListener('click', () => { S.frame = b.dataset.frame; saveSettings(); applySettings(); restartMedia(); }));
+$$('[data-fit]').forEach((b) => b.addEventListener('click', () => { S.fit = b.dataset.fit; saveSettings(); applySettings(); }));
+$('#lens').addEventListener('change', (e) => { S.lens = e.target.value; S.zoom = 0; saveSettings(); restartMedia(); });
+$('#zoom').addEventListener('input', (e) => {
+  S.zoom = +e.target.value; saveSettings(); $('#oZoom').textContent = S.zoom.toFixed(1) + '×';
+  const vt = stream && stream.getVideoTracks()[0];
+  if (vt) vt.applyConstraints({ advanced: [{ zoom: S.zoom }] }).catch(() => {});
+});
 $$('[data-q]').forEach((b) => b.addEventListener('click', () => { S.q = +b.dataset.q; saveSettings(); applySettings(); restartMedia(); }));
 $('#btnSettings').addEventListener('click', () => openSheet('settings'));
 
@@ -220,16 +232,12 @@ function friendly(e, what) {
 async function startMedia() {
   stopMedia();
   const audio = { echoCancellation: false, noiseSuppression: !!S.noiseSup, autoGainControl: false, channelCount: 1 };
-  const long = S.q, short = Math.round(S.q * 9 / 16);
-  const portrait = innerHeight >= innerWidth;
-  const v = S.mode === 'video' ? {
-    facingMode: S.facing, frameRate: { ideal: 30 },
-    width: { ideal: portrait ? short : long }, height: { ideal: portrait ? long : short },
-  } : false;
+  const v = S.mode === 'video' ? videoConstraints() : false;
   noMic = false;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio, video: v });
   } catch (err) {
+    if (v && S.lens) { S.lens = ''; saveSettings(); return startMedia(); }   // chosen lens gone: fall back to front/back
     // find out which device failed, so we can say exactly what to fix
     let audioErr = null, videoErr = null;
     try { (await navigator.mediaDevices.getUserMedia({ audio })).getTracks().forEach((t) => t.stop()); } catch (e) { audioErr = e; }
@@ -245,9 +253,45 @@ async function startMedia() {
   if (v) { video.srcObject = stream; video.hidden = false; $('#audioView').hidden = true; await video.play().catch(() => {}); }
   else { video.srcObject = null; video.hidden = true; $('#audioView').hidden = false; }
   startMeter(); keepAwake();
-  const vt = stream.getVideoTracks()[0], st = vt && vt.getSettings();
+  const vt = stream.getVideoTracks()[0];
+  if (vt) { await tuneCamera(vt); listLenses(); }
+  const st = vt && vt.getSettings();
   $('#devInfo').textContent = (st ? `Camera: ${st.width}×${st.height} @ ${Math.round(st.frameRate || 30)}fps · ` : '') +
     `Mic: ${noMic ? 'NONE (no sound!)' : (stream.getAudioTracks()[0]?.label || 'default')} · Format: ${pickMime().type || 'browser default'}`;
+}
+// Phone camera sizes are landscape (e.g. 1440x1080); the browser rotates them to portrait by itself.
+// Asking for a portrait size made the browser crop + upscale = "auto zoom" and a blurry picture.
+// resizeMode 'none' = use a real camera mode, never crop/scale.
+function videoConstraints() {
+  const short = S.q, long = Math.round(S.q * (S.frame === 'wide' ? 4 / 3 : 16 / 9));
+  const c = { width: { ideal: long }, height: { ideal: short }, frameRate: { ideal: 30 }, resizeMode: { ideal: 'none' }, zoom: true };
+  if (S.lens) c.deviceId = { exact: S.lens }; else c.facingMode = S.facing;
+  return c;
+}
+// zoom out to the widest view (or the saved zoom) and keep focus/exposure automatic, where the phone allows it
+async function tuneCamera(vt) {
+  const caps = vt.getCapabilities ? vt.getCapabilities() : {};
+  const z = caps.zoom, row = $('#zoomRow'), adv = {};
+  if (z && z.max > z.min) {
+    const want = S.zoom >= z.min && S.zoom <= z.max ? S.zoom : z.min;
+    adv.zoom = want; row.hidden = false;
+    const inp = $('#zoom'); inp.min = z.min; inp.max = z.max; inp.step = z.step || 0.1; inp.value = want;
+    $('#oZoom').textContent = (+want).toFixed(1) + '×';
+  } else row.hidden = true;
+  for (const k of ['focusMode', 'exposureMode', 'whiteBalanceMode']) {
+    if (caps[k] && caps[k].includes('continuous')) adv[k] = 'continuous';
+  }
+  if (Object.keys(adv).length) await vt.applyConstraints({ advanced: [adv] }).catch(() => {});
+}
+// some phones have 2+ lenses (normal / wide); let the user pick
+async function listLenses() {
+  try {
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+    const sel = $('#lens'); $('#lensRow').hidden = cams.length < 2;
+    sel.innerHTML = '<option value="">Auto (' + (S.facing === 'user' ? 'front' : 'back') + ')</option>' +
+      cams.map((c, i) => `<option value="${esc(c.deviceId)}">${esc(c.label || 'Camera ' + (i + 1))}</option>`).join('');
+    sel.value = S.lens;
+  } catch {}
 }
 function stopMedia() { if (stream) stream.getTracks().forEach((t) => t.stop()); stream = null; }
 async function restartMedia() {
@@ -304,7 +348,11 @@ async function toggleRecord() {
   await countdown();
   const { type, ext } = pickMime();
   const opts = { audioBitsPerSecond: 192000 }; if (type) opts.mimeType = type;
-  if (S.mode === 'video') opts.videoBitsPerSecond = S.q >= 1080 ? 10_000_000 : 6_000_000;
+  if (S.mode === 'video') {                         // bitrate from the real camera size (~0.2 bits per pixel)
+    const st = stream.getVideoTracks()[0]?.getSettings() || {};
+    const px = (st.width || 1920) * (st.height || 1080) * (st.frameRate || 30);
+    opts.videoBitsPerSecond = Math.min(20000000, Math.max(6000000, Math.round(px * 0.2)));
+  }
   try { recorder = new MediaRecorder(stream, opts); }
   catch { recorder = new MediaRecorder(stream); }
   chunks = [];
